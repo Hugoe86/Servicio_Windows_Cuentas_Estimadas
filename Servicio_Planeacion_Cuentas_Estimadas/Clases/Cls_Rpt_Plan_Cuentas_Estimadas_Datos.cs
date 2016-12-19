@@ -39,116 +39,167 @@ namespace Reportes_Planeacion.Cuentas_Estimadas.Datos
         {
             DataTable Dt_Consulta = new DataTable();
             String Str_My_Sql = "";
+            SqlDataAdapter da;
+            DataSet ds;
+
+
             try
             {
-                //  ****************************************************************************************************************************************
-                //  ****************************************************************************************************************************************
-                //  ****************************************************************************************************************************************
-                Str_My_Sql = "select " + " p.RPU";
-                Str_My_Sql += ", p.No_Cuenta";
-                Str_My_Sql += ", rg.Numero_Region as Sector";
-                Str_My_Sql += ", rr.No_Ruta as Ruta";
-                Str_My_Sql += ", t.Abreviatura as Tarifa";
-                Str_My_Sql += ", CASE" +
-                                    " when pm.PREDIO_ID is NULL then" +
-                                        " 'FALSO'" +
-                                    " ELSE 'VERDADERO'" +
-                                    " END" +
-                                    " as Tiene_Medidor";
-                Str_My_Sql += ", f.Consumo as Consumo_M3";
-                Str_My_Sql += ", case " +
-                                " when ml.Lectura_Estimada = 'SI'" +
-                                    " THEN 'VERDADERO'" +
-                                " else 'FALSO'" +
-                                " END as Estatus_Estimado";
-                Str_My_Sql += ", sum(fd.importe) as Monto_Facturado_Agua";
-                Str_My_Sql += ", isnull(le.NOMBRE, '') as Lecturista";
-                Str_My_Sql += ", month(f.Fecha_Emision) as Mes";
-                Str_My_Sql += ", YEAR(f.Fecha_Emision) as Año";
+                using (SqlConnection Obj_Conexion = new SqlConnection(Cls_Constantes.Str_Conexion))
+                {
+                    Obj_Conexion.Open();
 
-                Str_My_Sql += ", p.Estatus";
-                Str_My_Sql += ", p.Cortado";
+                    using (SqlCommand Obj_Comando = Obj_Conexion.CreateCommand())
+                    {
 
+                        //  ****************************************************************************************************************************************
+                        //  ****************************************************************************************************************************************
+                        //  ****************************************************************************************************************************************
+                        Str_My_Sql = "select " + " p.RPU";
+                        Str_My_Sql += ", p.No_Cuenta";
+                        Str_My_Sql += ", rg.Numero_Region as Sector";
+                        Str_My_Sql += ", rr.No_Ruta as Ruta";
+                        Str_My_Sql += ", t.Abreviatura as Tarifa";
+                        Str_My_Sql += ", CASE" +
+                                            " when pm.PREDIO_ID is NULL then" +
+                                                " 'FALSO'" +
+                                            " ELSE 'VERDADERO'" +
+                                            " END" +
+                                            " as Tiene_Medidor";
+                        Str_My_Sql += ", f.Consumo as Consumo_M3";
+                        Str_My_Sql += ", case " +
+                                        " when ml.Lectura_Estimada = 'SI'" +
+                                            " THEN 'VERDADERO'" +
+                                        " else 'FALSO'" +
+                                        " END as Estatus_Estimado";
 
-                Str_My_Sql += ", case	" +
-                                    " when p.Cortado = 'SI' THEN" +
-                                        "(" +
-                                            " select top 1 o.Fecha" +
-                                            " from OPE_COR_ORDENES_TRABAJO o" +
-                                            " where o.Tipo_Falla_ID in ('00005', '00006')" +
-                                            " and o.Predio_ID = p.Predio_ID" +
-                                            " order by No_Orden_Trabajo desc" +
-                                        ")" +
-                                    " end" +
-                                " as Fecha_Corte";
-
-                Str_My_Sql += ", case " +
-                                    " when p.Cortado = 'SI' THEN" +
-                                        "(" +
-                                            " select top 1 tf.DESCRIPCION" +
-                                            " from OPE_COR_ORDENES_TRABAJO o" +
-                                            " join CAT_COR_TIPOS_FALLAS tf on tf.TIPO_FALLA_ID = o.Tipo_Falla_ID" +
-                                            " where o.Tipo_Falla_ID in ('00005', '00006')" +
-                                            " and o.Predio_ID = p.Predio_ID" +
-                                            " order by No_Orden_Trabajo desc" +
-                                        ")" +
-                                    " end" +
-                                " as Tipo_Corte";
-
-                //  ****************************************************************************************************************************************
-                //  ****************************************************************************************************************************************
-                //  from **********************************************************************************************************************************
-                Str_My_Sql += " from Cat_Cor_Predios p";
-                Str_My_Sql += " join Cat_Cor_Regiones rg on rg.Region_ID = p.Region_ID";
-                Str_My_Sql += " join Cat_Cor_Rutas_Reparto rr on rr.Ruta_Reparto_ID = p.Ruta_Reparto_ID";
-                Str_My_Sql += " join Cat_Cor_Tarifas t on t.Tarifa_ID = p.Tarifa_ID";
-                Str_My_Sql += " left outer join Cat_Cor_Predios_Medidores pm on pm.PREDIO_ID = p.Predio_ID ";
-                Str_My_Sql += " join Ope_Cor_Facturacion_Recibos f on f.Predio_ID = p.Predio_ID";
-                Str_My_Sql += " join Ope_Cor_Facturacion_Recibos_Detalles fd on fd.No_Factura_Recibo = f.No_Factura_Recibo";
-                Str_My_Sql += " join Cat_Cor_Conceptos_Cobros cc on cc.Concepto_ID = fd.Concepto_ID";
-                Str_My_Sql += " JOIN Cat_Cor_Medidores_Lecturas_Detalles ml ON ml.Medidor_Detalle_ID = f.Medidor_Detalle_ID";
-                Str_My_Sql += " join Cat_Cor_Lecturistas le on le.LECTURISTA_ID= ml.Lecturista_ID";
-
-                //  ****************************************************************************************************************************************
-                //  ****************************************************************************************************************************************
-                //  Where ********************************************************************************************************************************
-                Str_My_Sql += " where  p.Estatus = 'ACTIVO' ";
-                Str_My_Sql += " and MONTH(f.Fecha_Emision) =  " + Datos.P_Dti_Periodo.Month;
-                Str_My_Sql += " and YEAR(f.Fecha_Emision) = " + Datos.P_Dti_Periodo.Year;
-
-                Str_My_Sql += " and(cc.Concepto_ID = (select p.CONCEPTO_AGUA from Cat_Cor_Parametros p) " +
-                                        " OR  cc.Concepto_ID = (select p.Concepto_Agua_Comercial from Cat_Cor_Parametros p)" +
-                                        " OR cc.Concepto_ID = (select p.CONCEPTO_DRENAJE from Cat_Cor_Parametros p) " +
-                                        " OR cc.Concepto_ID = (select p.CONCEPTO_SANAMIENTO from Cat_Cor_Parametros p))";
+                        Str_My_Sql += ", f.Lectura_Anterior";
+                        Str_My_Sql += ", f.Lectura_Actual";
 
 
-                //  ****************************************************************************************************************************************
-                //  ****************************************************************************************************************************************
-                //  GROUP  by  **********************************************************************************************************
-                Str_My_Sql += " GROUP by ";
-                Str_My_Sql += " p.RPU";
-                Str_My_Sql += ", p.No_Cuenta";
-                Str_My_Sql += ", rg.Numero_Region ";
-                Str_My_Sql += ", rr.No_Ruta";
-                Str_My_Sql += ", t.Abreviatura ";
-                Str_My_Sql += ", pm.PREDIO_ID";
-                Str_My_Sql += ", f.Consumo";
-                Str_My_Sql += ", f.No_Factura_Recibo";
-                Str_My_Sql += ", le.NOMBRE";
-                Str_My_Sql += ", f.Fecha_Emision";
-                Str_My_Sql += ", f.Estimado";
-                Str_My_Sql += ", ml.Lectura_Estimada";
-                Str_My_Sql += ", p.Estatus";
-                Str_My_Sql += ", p.Cortado";
-                Str_My_Sql += ", p.predio_id";
+                        Str_My_Sql += ", (" +
+                                            " select isnull(mnl.CLAVE , '')" +
+                                            " from Cat_Cor_Medidores_Lecturas_Detalles ml" +
+                                            " join Cat_Cor_Motivos_No_Lectura mnl on mnl.MOTIVO_NO_LECTURA_ID = ml.Clave_Anomalia_ID_1" +
+                                            " where ml.Medidor_Detalle_ID = f.Medidor_Detalle_ID" +
+                                            " ) as Anomalia_Actual";
 
-                //  ****************************************************************************************************************************************
-                //  ****************************************************************************************************************************************
-                //  order by  **********************************************************************************************************
-                Str_My_Sql += " order by p.no_cuenta asc";
+                        Str_My_Sql += ", ( " +
+                                                " Select isnull(mnl.clave , '')" +
+                                                " from Cat_Cor_Medidores_Lecturas_Detalles ml" +
+                                                " join Cat_Cor_Motivos_No_Lectura mnl on mnl.MOTIVO_NO_LECTURA_ID = ml.Clave_Anomalia_ID_1" +
+                                                " where ml.Medidor_Detalle_ID = (" +
+                                                                                    " select top 1 fs.Medidor_Detalle_ID" +
+                                                                                    " from Ope_Cor_Facturacion_Recibos fs" +
+                                                                                    " where MONTH(fs.Fecha_Emision) = " + Datos.P_Dti_Periodo.AddMonths(-1).Month +
+                                                                                    " AND YEAR(fs.Fecha_Emision) = " + Datos.P_Dti_Periodo.AddMonths(-1).Year +
+                                                                                    " and fs.RPU = p.rpu	" +
+                                                                                    " order by fs.No_Factura_Recibo desc" +
+                                                                                " )" +
+                                                " ) as   Anomalia_Anterior";
 
-                Dt_Consulta = SqlHelper.ExecuteDataset(Cls_Constantes.Str_Conexion, CommandType.Text, Str_My_Sql).Tables[0];
 
+                        Str_My_Sql += ", sum(fd.importe) as Monto_Facturado_Agua";
+                        Str_My_Sql += ", isnull(le.NOMBRE, '') as Lecturista";
+                        Str_My_Sql += ", month(f.Fecha_Emision) as Mes";
+                        Str_My_Sql += ", YEAR(f.Fecha_Emision) as Año";
+
+                        Str_My_Sql += ", p.Estatus";
+                        Str_My_Sql += ", p.Cortado";
+
+
+                        Str_My_Sql += ", case	" +
+                                            " when p.Cortado = 'SI' THEN" +
+                                                "(" +
+                                                    " select top 1 o.Fecha" +
+                                                    " from OPE_COR_ORDENES_TRABAJO o" +
+                                                    " where o.Tipo_Falla_ID in ('00005', '00006')" +
+                                                    " and o.Predio_ID = p.Predio_ID" +
+                                                    " order by No_Orden_Trabajo desc" +
+                                                ")" +
+                                            " end" +
+                                        " as Fecha_Corte";
+
+                        Str_My_Sql += ", case " +
+                                            " when p.Cortado = 'SI' THEN" +
+                                                "(" +
+                                                    " select top 1 tf.DESCRIPCION" +
+                                                    " from OPE_COR_ORDENES_TRABAJO o" +
+                                                    " join CAT_COR_TIPOS_FALLAS tf on tf.TIPO_FALLA_ID = o.Tipo_Falla_ID" +
+                                                    " where o.Tipo_Falla_ID in ('00005', '00006')" +
+                                                    " and o.Predio_ID = p.Predio_ID" +
+                                                    " order by No_Orden_Trabajo desc" +
+                                                ")" +
+                                            " end" +
+                                        " as Tipo_Corte";
+
+                        //  ****************************************************************************************************************************************
+                        //  ****************************************************************************************************************************************
+                        //  from **********************************************************************************************************************************
+                        Str_My_Sql += " from Cat_Cor_Predios p";
+                        Str_My_Sql += " join Cat_Cor_Regiones rg on rg.Region_ID = p.Region_ID";
+                        Str_My_Sql += " join Cat_Cor_Rutas_Reparto rr on rr.Ruta_Reparto_ID = p.Ruta_Reparto_ID";
+                        Str_My_Sql += " join Cat_Cor_Tarifas t on t.Tarifa_ID = p.Tarifa_ID";
+                        Str_My_Sql += " left outer join Cat_Cor_Predios_Medidores pm on pm.PREDIO_ID = p.Predio_ID ";
+                        Str_My_Sql += " join Ope_Cor_Facturacion_Recibos f on f.Predio_ID = p.Predio_ID";
+                        Str_My_Sql += " join Ope_Cor_Facturacion_Recibos_Detalles fd on fd.No_Factura_Recibo = f.No_Factura_Recibo";
+                        Str_My_Sql += " join Cat_Cor_Conceptos_Cobros cc on cc.Concepto_ID = fd.Concepto_ID";
+                        Str_My_Sql += " JOIN Cat_Cor_Medidores_Lecturas_Detalles ml ON ml.Medidor_Detalle_ID = f.Medidor_Detalle_ID";
+                        Str_My_Sql += " join Cat_Cor_Lecturistas le on le.LECTURISTA_ID= ml.Lecturista_ID";
+
+                        //  ****************************************************************************************************************************************
+                        //  ****************************************************************************************************************************************
+                        //  Where ********************************************************************************************************************************
+                        Str_My_Sql += " where  p.Estatus = 'ACTIVO' ";
+                        Str_My_Sql += " and MONTH(f.Fecha_Emision) =  " + Datos.P_Dti_Periodo.Month;
+                        Str_My_Sql += " and YEAR(f.Fecha_Emision) = " + Datos.P_Dti_Periodo.Year;
+
+                        Str_My_Sql += " and(cc.Concepto_ID = (select p.CONCEPTO_AGUA from Cat_Cor_Parametros p) " +
+                                                " OR  cc.Concepto_ID = (select p.Concepto_Agua_Comercial from Cat_Cor_Parametros p)" +
+                                                " OR cc.Concepto_ID = (select p.CONCEPTO_DRENAJE from Cat_Cor_Parametros p) " +
+                                                " OR cc.Concepto_ID = (select p.CONCEPTO_SANAMIENTO from Cat_Cor_Parametros p))";
+
+                        //Str_My_Sql += "and  p.RPU = '000870300182'";
+
+                        //  ****************************************************************************************************************************************
+                        //  ****************************************************************************************************************************************
+                        //  GROUP  by  **********************************************************************************************************
+                        Str_My_Sql += " GROUP by ";
+                        Str_My_Sql += " p.RPU";
+                        Str_My_Sql += ", p.No_Cuenta";
+                        Str_My_Sql += ", rg.Numero_Region ";
+                        Str_My_Sql += ", rr.No_Ruta";
+                        Str_My_Sql += ", t.Abreviatura ";
+                        Str_My_Sql += ", pm.PREDIO_ID";
+                        Str_My_Sql += ", f.Consumo";
+                        Str_My_Sql += ", f.No_Factura_Recibo";
+                        Str_My_Sql += ", le.NOMBRE";
+                        Str_My_Sql += ", f.Fecha_Emision";
+                        Str_My_Sql += ", f.Estimado";
+                        Str_My_Sql += ", ml.Lectura_Estimada";
+                        Str_My_Sql += ", p.Estatus";
+                        Str_My_Sql += ", p.Cortado";
+                        Str_My_Sql += ", p.predio_id";
+                        Str_My_Sql += ", f.Lectura_Anterior";
+                        Str_My_Sql += ", f.Lectura_Actual";
+                        Str_My_Sql += ", f.Medidor_Detalle_ID";
+                        //  ****************************************************************************************************************************************
+                        //  ****************************************************************************************************************************************
+                        //  order by  **********************************************************************************************************
+                        Str_My_Sql += " order by p.no_cuenta asc";
+
+                        // Dt_Consulta = SqlHelper.ExecuteDataset(Cls_Constantes.Str_Conexion, CommandType.Text, Str_My_Sql).Tables[0];
+
+
+                        Obj_Comando.CommandText = Str_My_Sql;
+                        Obj_Comando.CommandTimeout = 300;
+                        da = new SqlDataAdapter(Obj_Comando);
+                        ds = new DataSet();
+                        da.Fill(ds);
+
+                        Dt_Consulta = ds.Tables[0];
+                    }
+                }
             }
             catch (Exception Ex)
             {
@@ -329,6 +380,10 @@ namespace Reportes_Planeacion.Cuentas_Estimadas.Datos
                 Mi_SQL += ", Tipo_Corte";                           //  16
                 Mi_SQL += ", Usuario_Creo";                         //  17
                 Mi_SQL += ", fecha_creo";                           //  18
+                Mi_SQL += ", Lectura_Anterior";                     //  19
+                Mi_SQL += ", Lectura_Actual";                       //  20
+                Mi_SQL += ", Anomalia_Anterior";                    //  21
+                Mi_SQL += ", Anomalia_Actual";                      //  22
                 Mi_SQL += ")";
                 //***************************************************************************
                 Mi_SQL += " values ";
@@ -365,6 +420,10 @@ namespace Reportes_Planeacion.Cuentas_Estimadas.Datos
                 Mi_SQL += ", '" + Datos.P_Dr_Registro["Tipo_Corte"].ToString() + "'";           //  16
                 Mi_SQL += ", '" + Datos.P_Usuario + "'";                                        //  17
                 Mi_SQL += ", getdate()";                                                        //  18
+                Mi_SQL += ", '" + Datos.P_Dr_Registro["Lectura_Anterior"].ToString() + "'";     //  19
+                Mi_SQL += ", '" + Datos.P_Dr_Registro["Lectura_Actual"].ToString() + "'";       //  20
+                Mi_SQL += ", '" + Datos.P_Dr_Registro["Anomalia_Anterior"].ToString() + "'";    //  21
+                Mi_SQL += ", '" + Datos.P_Dr_Registro["Anomalia_Actual"].ToString() + "'";      //  22
                 Mi_SQL += ")";
 
 
